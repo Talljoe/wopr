@@ -96,6 +96,11 @@ enum settings {
   SET_SEP = 4,
 } currentSetting;
 
+enum directions {
+  UP = 1,
+  DOWN = -1
+};
+
 
 /* Code cracking stuff
    Though this works really well, there are probably much nicer and cleaner
@@ -420,7 +425,7 @@ void BUT2Press()
       // If in the settings, cycle the setting for whatever setting we are on
       if ( currentMode == SETTINGS )
       {
-        UpdateSetting(1);
+        UpdateSetting(UP);
       }
     }
   }
@@ -441,7 +446,7 @@ void BUT3Press()
     // If in the settings, cycle the setting for whatever menu option we are in
     if ( currentState == SET && currentMode == SETTINGS )
     {
-      UpdateSetting(1);
+      UpdateSetting(UP);
     }
   }
 }
@@ -456,7 +461,7 @@ void BUT4Press()
     // If in the settings, cycle the setting for whatever menu option we are in
     if ( currentState == SET && currentMode == SETTINGS )
     {
-      UpdateSetting(-1);
+      UpdateSetting(DOWN);
     }
   }
 }
@@ -465,11 +470,11 @@ void BUT4Press()
 #endif
 
 // Cycle the setting for whatever current setting we are changing
-void UpdateSetting( int dir )
+void UpdateSetting( directions dir )
 {
   if ( currentSetting == SET_GMT )
   {
-    settings_GMT += dir;
+    settings_GMT += (int)dir;
     if ( settings_GMT > 14 )
       settings_GMT = -12;
     else if ( settings_GMT < -12 )
@@ -484,7 +489,7 @@ void UpdateSetting( int dir )
   }
   else if ( currentSetting == SET_BRIGHT )
   {
-    settings_displayBrightness += dir;
+    settings_displayBrightness += (int)dir;
     if ( settings_displayBrightness > 15 )
       settings_displayBrightness = 0;
     else if ( settings_displayBrightness < 0 )
@@ -494,7 +499,7 @@ void UpdateSetting( int dir )
   }
   else if ( currentSetting == SET_CLOCK )
   {
-    settings_clockCountdownTime += dir * 10; // Larger increments for quicker change
+    settings_clockCountdownTime += (int)dir * 10; // Larger increments for quicker change
     if ( settings_clockCountdownTime > 60 )
       settings_clockCountdownTime = 0;
     else if ( settings_clockCountdownTime < 0 )
@@ -504,7 +509,7 @@ void UpdateSetting( int dir )
   }
   else if ( currentSetting == SET_SEP )
   {
-    settings_separator += dir;
+    settings_separator += (int)dir;
     if ( settings_separator == 3)
       settings_separator = 0;
     else if ( settings_separator < 0 )
@@ -732,7 +737,7 @@ void ResetCode()
   // Clear code display buffer
   for ( uint8_t i = 0; i < 12; i++ )
   {
-    if ( currentMode == 0 && ( i == 3 || i == 8 ) )
+    if ( currentMode == MOVIE && ( i == 3 || i == 8 ) )
       displaybuffer[ i ] = ' ';
     else
       displaybuffer[ i ] = '-';
@@ -894,19 +899,14 @@ void loop()
     }
   }
   // We are running a simulation
-  else if ( currentState == SET )
+  else if ( currentState == RUNNING )
   {
-
-
-  }
-  else
-  {
-    if ( currentMode == 3 )
+    if ( currentMode == CLOCK )
     {
-      if ( nextBeep < millis() )
+      if ( nextTick < millis() )
       {
         DisplayTime();
-        nextBeep = millis() + 1000;
+        nextTick = millis() + 1000;
       }
     }
     else
