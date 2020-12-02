@@ -66,7 +66,7 @@ uint8_t settings_separator = 0; // 0 is " ", 1 is "-", 2 is "_"
 const char* ntpServer = "pool.ntp.org";
 const int   daylightOffset_sec = 3600;
 bool didChangeClockSettings = false;
-bool hasWiFi = false;
+bool hasTime = false;
 
 //// Program & Menu state
 String clockSeparators [] = {" ", "-", "_"};
@@ -219,7 +219,10 @@ void setup()
      Make sure you have set your SSID and Password in secret.h
   */
 
-  StartWifi();
+  if ( StartWifi() ) {
+    hasTime = SetTime();
+    StopWifi();
+  }
 
   // User settable countdown from main menu to go into clock if no user interaction
   // Has happened. settings_clockCountdownTime is in seconds and we want milliseconds
@@ -230,22 +233,22 @@ void setup()
   DisplayText( "MENU" );
 }
 
-void StartWifi()
+bool StartWifi()
 {
 
   if ( ssid == "PUT SSID HERE" )
   {
     DisplayText( "SSID NOT SET" );
     RGB_SetColor_ALL( Color(255, 0, 0) );
-    hasWiFi = false;
     delay(2000);
+    return false;
   }
   else if ( password == "PUT PASSWORD HERE" )
   {
     DisplayText( "PASS NOT SET" );
     RGB_SetColor_ALL( Color(255, 0, 0) );
-    hasWiFi = false;
     delay(2000);
+    return false;
   }
   else
   {
@@ -267,45 +270,44 @@ void StartWifi()
     {
       DisplayText( "WiFi FAILED" );
       RGB_SetColor_ALL( Color(255, 0, 0) );
-      hasWiFi = false;
-      //while(1) {delay(1000);}
       delay(3000);
+      return false;
     }
     else
     {
       Serial.println(" CONNECTED");
       DisplayText( "WiFi GOOD" );
       RGB_SetColor_ALL( Color(0, 255, 0) );
-
-      hasWiFi = true;
-
       delay(500);
-
-      //init and get the time
-
-      configTime(settings_GMT * 3600, settings_DST ? daylightOffset_sec : 0, ntpServer);
-
-      struct tm timeinfo;
-      if (!getLocalTime(&timeinfo)) {
-        Serial.println("Failed to obtain time");
-        DisplayText( "Time FAILED" );
-        RGB_SetColor_ALL( Color(255, 0, 0) );
-      }
-      else
-      {
-        Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-
-        //disconnect WiFi as it's no longer needed
-        WiFi.disconnect(true);
-        WiFi.mode(WIFI_OFF);
-
-        DisplayText( "Time Set OK" );
-        RGB_SetColor_ALL( Color(0, 0, 255) );
-      }
-
-      delay(1000);
+      return true;
     }
   }
+}
+
+bool SetTime() {
+  //init and get the time
+  configTime(settings_GMT * 3600, settings_DST ? daylightOffset_sec : 0, ntpServer);
+
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    DisplayText( "Time FAILED" );
+    RGB_SetColor_ALL( Color(255, 0, 0) );
+
+    delay(1000);
+    return false;
+  }
+
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+
+  DisplayText( "Time Set OK" );
+  RGB_SetColor_ALL( Color(0, 0, 255) );
+  return true;
+}
+
+void StopWifi() {
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
 }
 
 // Button press code her
@@ -561,7 +563,7 @@ void SetDisplayBrightness( int val )
 // Take the time data from the RTC and format it into a string we can display
 void DisplayTime()
 {
-  if (!hasWiFi)
+  if (!hasTime)
   {
     DisplayText("NO CLOCK");
     return;
@@ -891,7 +893,7 @@ void loop()
 
     // Timer to go into clock if no user interaction for XX seconds
     // If settings_clockCountdownTime is 0, this feature is off
-    if ( hasWiFi && settings_clockCountdownTime > 0 && countdownToClock < millis()  )
+    if ( hasTime && settings_clockCountdownTime > 0 && countdownToClock < millis()  )
     {
       Clear();
       currentMode = CLOCK;
