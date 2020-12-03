@@ -568,6 +568,7 @@ void DisplayTime()
     DisplayText("NO CLOCK");
     return;
   }
+  
   // Store the current time into a struct
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo))
@@ -576,31 +577,12 @@ void DisplayTime()
     DisplayText("TIME FAILED");
     return;
   }
-  // Formt the contents of the time struct into a string for display
+  
+  // Format the contents of the time struct into a string for display
   char DateAndTimeString[12];
   String sep = clockSeparators[settings_separator];
-  if ( timeinfo.tm_hour < 10 )
-    sprintf(DateAndTimeString, "   %d%s%02d%s%02d", timeinfo.tm_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
-  else
-    sprintf(DateAndTimeString, "  %d%s%02d%s%02d", timeinfo.tm_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
-
-  // Iterate through each digit on the display and populate the time, or clear the digit
-  uint8_t curDisplay = 0;
-  uint8_t curDigit = 0;
-
-  for ( uint8_t i = 0; i < 10; i++ )
-  {
-    matrix[curDisplay].writeDigitAscii( curDigit, DateAndTimeString[i]);
-    curDigit++;
-    if ( curDigit == 4 )
-    {
-      curDigit = 0;
-      curDisplay++;
-    }
-  }
-
-  // Show whatever is in the display buffer on the display
-  Display();
+  sprintf(DateAndTimeString, "  %2d%s%02d%s%02d", timeinfo.tm_hour, sep, timeinfo.tm_min, sep, timeinfo.tm_sec);
+  DisplayText(DateAndTimeString);
 }
 
 // Display whatever is in txt on the display
@@ -625,6 +607,27 @@ void DisplayText(String txt)
 
   // Show whatever is in the display buffer on the display
   Display();
+}
+
+// Clear the contents of the display buffers and update the display
+void Clear()
+{
+  // There are 3 LED drivers
+  for ( int i = 0; i < 3; i++ )
+  {
+    // There are 4 digits per LED driver
+    for ( int d = 0; d < 4; d++ )
+      matrix[i].writeDigitAscii( d, ' ');
+
+    matrix[i].writeDisplay();
+  }
+}
+
+// Show the contents of the display buffer on the displays
+void Display()
+{
+  for ( int i = 0; i < 3; i++ )
+    matrix[i].writeDisplay();
 }
 
 
@@ -796,27 +799,6 @@ void SolveCode()
     beepCount = 3;
     nextBeep = millis() + 500;
   }
-}
-
-// Clear the contents of the display buffers and update the display
-void Clear()
-{
-  // There are 3 LED drivers
-  for ( int i = 0; i < 3; i++ )
-  {
-    // There are 4 digits per LED driver
-    for ( int d = 0; d < 4; d++ )
-      matrix[i].writeDigitAscii( d, ' ');
-
-    matrix[i].writeDisplay();
-  }
-}
-
-// Show the contents of the display buffer on the displays
-void Display()
-{
-  for ( int i = 0; i < 3; i++ )
-    matrix[i].writeDisplay();
 }
 
 void RGB_SetDefcon( byte level, bool force )
