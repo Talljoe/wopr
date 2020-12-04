@@ -871,6 +871,7 @@ void loop()
     if ( hasTime && settings_clockCountdownTime > 0 && countdownToClock < millis()  )
     {
       Clear();
+      RGB_Clear(true);
       currentMode = CLOCK;
       currentState = RUNNING;
     }
