@@ -591,12 +591,11 @@ void DisplayText(String txt)
   uint8_t curDisplay = 0;
   uint8_t curDigit = 0;
 
-  Clear();
-
-  // Iterate through each digit and push the character rom the txt string into that position
-  for ( uint8_t i = 0; i < txt.length(); i++ )
+  // Iterate through each digit and push the character from the txt string into that position
+  for ( uint8_t i = 0; i < 12; i++ )
   {
-    matrix[curDisplay].writeDigitAscii( curDigit, txt.charAt(i));
+    char ch = i < txt.length() ? txt.charAt(i) : ' ';
+    matrix[curDisplay].writeDigitAscii( curDigit, ch);
     curDigit++;
     if ( curDigit == 4 )
     {
