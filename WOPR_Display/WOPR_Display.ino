@@ -841,12 +841,6 @@ void RGB_Rainbow(int wait)
   }
 }
 
-int pingpong(int t, int length)
-{
-  return t % length;
-}
-
-
 void RGB_SetColor_ALL(uint32_t col)
 {
   // For each RGB LED
