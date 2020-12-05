@@ -65,7 +65,7 @@ uint8_t settings_separator = 0; // 0 is " ", 1 is "-", 2 is "_"
 // NTP Wifi Time
 const char* ntpServer = "pool.ntp.org";
 const int   daylightOffset_sec = 3600;
-bool didChangeClockSettings = false;
+bool resetOnSave = false;
 bool hasTime = false;
 
 //// Program & Menu state
@@ -164,6 +164,13 @@ OneButton Button3(BUT3, false);
 OneButton Button4(BUT4, false);
 #endif
 
+ESPFlash<uint8_t> set_ClockCountdown;
+ESPFlash<uint8_t> set_Separator;
+ESPFlash<int> set_GMT;
+ESPFlash<int> set_DST;
+ESPFlash<uint8_t> set_Brightness;
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -204,12 +211,13 @@ void setup()
   ledcSetup(channel, freq, resolution);
   ledcAttachPin(DAC, channel);
 
-
-  
-  // Load the user settings. If this fails, defaults are created.
-  DisplayText( "FRMAT SPIFFS" );
+  // Load the user settings
+  set_ClockCountdown.setFileName("/set_ClockCountdown");
+  set_Separator.setFileName("/set_Separator");
+  set_GMT.setFileName("/set_GMT");
+  set_DST.setFileName("/set_DST");
+  set_Brightness.setFileName("/set_Brightness");
   loadSettings();
-  
   
   SetDisplayBrightness(settings_displayBrightness);
 
@@ -323,10 +331,8 @@ void BUT1_SaveSettings()
     saveSettings();
     delay(500);
 
-    if ( didChangeClockSettings )
+    if ( resetOnSave )
     {
-      // We need to start the MCU now to kick in any time changes
-      // As they happen during startup when wifi is connected
       ESP.restart();
     }
     else
@@ -482,12 +488,16 @@ void UpdateSetting( directions dir )
     else if ( settings_GMT < -12 )
       settings_GMT = 14;
 
-    didChangeClockSettings = true;
+    // We need to start the MCU to kick in any time changes
+    // As they happen during startup when wifi is connected
+    resetOnSave = true;
   }
   else if ( currentSetting == SET_DST )
   {
     settings_DST = !settings_DST;
-    didChangeClockSettings = true;
+    // We need to start the MCU to kick in any time changes
+    // As they happen during startup when wifi is connected
+    resetOnSave = true;
   }
   else if ( currentSetting == SET_BRIGHT )
   {
@@ -964,50 +974,37 @@ void loop()
 // File/Settings Stuff
 void loadSettings()
 {
-  ESPFlash<uint8_t> set_ClockCountdown("/set_ClockCountdown");
-  int leng = set_ClockCountdown.length();
-
-  // If the clock countdown is 0, then no data exists
-  // So we wil create the defaults and reload
-  if ( leng == 0 )
+  if ( set_ClockCountdown.exists() )
   {
-    Serial.println("**** Creating settings!!!");
-    saveSettings();
-    loadSettings();
-    return;
+    settings_clockCountdownTime = set_ClockCountdown.get();
   }
-  Clear();
 
-//  ESPFlash<uint8_t> set_ClockCountdown("/set_ClockCountdown");
-  settings_clockCountdownTime = set_ClockCountdown.get();
-  
-  ESPFlash<uint8_t> set_Separator("/set_Separator");
-  settings_separator = constrain(set_Separator.get(), 0, ELEMENTS(clockSeparators) - 1);
+  if ( set_Separator.exists() )
+  {
+    settings_separator = constrain(set_Separator.get(), 0, ELEMENTS(clockSeparators) - 1);
+  }
 
-  ESPFlash<int> set_GMT("/set_GMT");
-  settings_GMT = set_GMT.get();
+  if ( set_GMT.exists() )
+  {
+    settings_GMT = set_GMT.get();
+  }
 
-  ESPFlash<int> set_DST("/set_DST");
-  settings_DST = set_DST.get() == 1;
+  if ( set_DST.exists() )
+  {
+    settings_DST = set_DST.get() == 1;
+  }
 
-  ESPFlash<uint8_t> set_Brightness("/set_Brightness");
-  settings_displayBrightness = set_Brightness.get();
+  if ( set_Brightness.exists() )
+  {
+    settings_displayBrightness = set_Brightness.get();
+  }
 }
 
 void saveSettings()
 {
-  ESPFlash<int> set_GMT("/set_GMT");
   set_GMT.set(settings_GMT);
-
-  ESPFlash<int> set_DST("/set_DST");
   set_DST.set(settings_DST ? 1 : 0);
-
-  ESPFlash<uint8_t> set_ClockCountdown("/set_ClockCountdown");
   set_ClockCountdown.set(settings_clockCountdownTime);
-
-  ESPFlash<uint8_t> set_Separator("/set_Separator");
   set_Separator.set(settings_separator);
-
-  ESPFlash<uint8_t> set_Brightness("/set_Brightness");
   set_Brightness.set(settings_displayBrightness);
 }

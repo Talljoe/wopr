@@ -74,6 +74,9 @@ class ESPFlash
     /* Gets elements of Type T from the end of the file stored in the associated ESPFlash SPIFFS file if it exists */
     /* Returns the number of elements "got" */
     bool getBackElements(T* data, uint32_t size);
+    /* Gets if the file exists */
+    /* Returns true if the file exists */
+    bool exists(void);
     /* Deletes the associated ESPFlash SPIFFS file. */
     /* Returns true if successful */
     void clear(void);
@@ -95,17 +98,11 @@ class ESPFlash
 
 };
 
-template<class T> ESPFlash<T>::ESPFlash()
-{
-  SPIFFS.begin(true);      
-  return;
-};
+template<class T> ESPFlash<T>::ESPFlash() {};
 
 template<class T> ESPFlash<T>::ESPFlash(const char* fileName)
 {
   setFileName(fileName);
-  SPIFFS.begin(true);      
-  return;
 };
 
 template<class T> uint32_t ESPFlash<T>::length(void)
@@ -275,6 +272,11 @@ template<class T> bool ESPFlash<T>::getBackElements(T* data, uint32_t size)
   return success;
 };
 
+template<class T> bool ESPFlash<T>::exists(void)
+{
+  return isInitialised && SPIFFS.exists(this->fileName);
+}
+
 template<class T> void ESPFlash<T>::clear(void)
 {  
   if(isInitialised == true)
@@ -286,7 +288,7 @@ template<class T> void ESPFlash<T>::clear(void)
 
 template<class T> bool ESPFlash<T>::writeElement(const T data, WRITE_MODE mode)
 {
-    File file;
+  File file;
   uint32_t bytesWritten;
   bool success; 
   success = false;
